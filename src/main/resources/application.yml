@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: heukbaekbook-auth
+
+server:
+  port: 8090
