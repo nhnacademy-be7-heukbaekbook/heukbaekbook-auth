@@ -1,6 +1,13 @@
 spring:
   application:
     name: heukbaekbook-auth
+  datasource:
+    url: jdbc:mysql://${DB_IP}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
 server:
-  port: 8090
+  port: ${SERVER_PORT}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
