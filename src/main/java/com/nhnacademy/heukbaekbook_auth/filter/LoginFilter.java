@@ -2,6 +2,7 @@ package com.nhnacademy.heukbaekbook_auth.filter;
 
 import com.nhnacademy.heukbaekbook_auth.dto.CustomUserDetails;
 import com.nhnacademy.heukbaekbook_auth.exception.IdOrPasswordMissingException;
+import com.nhnacademy.heukbaekbook_auth.service.MemberService;
 import com.nhnacademy.heukbaekbook_auth.util.JwtUtil;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import jakarta.servlet.FilterChain;
@@ -28,6 +29,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final MemberService memberService;
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
@@ -59,6 +61,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String token = jwtUtil.createJwt(id, role, JWT_EXPIRATION_TIME);
 
         response.addHeader(HttpHeaders.AUTHORIZATION, TOKEN_PREFIX + token);
+
+        memberService.updateLastLogin(id);
     }
 
     @Override

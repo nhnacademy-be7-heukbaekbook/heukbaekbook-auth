@@ -34,7 +34,7 @@ public class Member {
     private LocalDateTime memberCreatedAt;
 
     @Column(name = "member_last_login_at")
-    private LocalDate memberLastLoginAt;
+    private LocalDateTime memberLastLoginAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "member_status")
