@@ -1,6 +1,7 @@
 package com.nhnacademy.heukbaekbook_auth.service;
 
 import com.nhnacademy.heukbaekbook_auth.domain.Member;
+import com.nhnacademy.heukbaekbook_auth.domain.MemberStatus;
 import com.nhnacademy.heukbaekbook_auth.dto.CustomUserDetails;
 import com.nhnacademy.heukbaekbook_auth.dto.MemberLoginRequest;
 import com.nhnacademy.heukbaekbook_auth.repository.MemberRepository;
@@ -20,7 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Member member = memberRepository.findByLoginId(username).orElse(null);
 
-        if (member == null) {
+        if (member == null || member.getStatus() == MemberStatus.WITHDRAWN) {
             return null;
         }
 
