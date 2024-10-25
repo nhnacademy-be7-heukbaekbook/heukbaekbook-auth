@@ -44,6 +44,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers("/login", "/admin/login").permitAll()
+                        .requestMatchers("/api/auth/logout", "/api/auth/refresh").permitAll()
                         .anyRequest().authenticated()
         );
 
