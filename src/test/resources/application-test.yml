@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: auth
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+
+jwt:
+  secret-key: for-testing-secret-key
+  refresh-secret-key: for-testing-refresh-secret-key
