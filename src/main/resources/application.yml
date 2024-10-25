@@ -1,20 +1,5 @@
 spring:
   application:
-    name: heukbaekbook-auth
-  datasource:
-    url: jdbc:mysql://${DB_IP}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      password: ${REDIS_PASSWORD}
-      database: ${REDIS_DATABASE}
-
-server:
-  port: ${SERVER_PORT}
-
-jwt:
-  secret-key: ${JWT_SECRET_KEY}
-  refresh-secret-key: ${JWT_REFRESH_SECRET_KEY}
+    name: auth
+  config:
+    import: optional:configserver:http://localhost:9000
