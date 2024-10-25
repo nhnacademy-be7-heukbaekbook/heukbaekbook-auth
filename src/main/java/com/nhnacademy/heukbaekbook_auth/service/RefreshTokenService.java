@@ -23,6 +23,10 @@ public class RefreshTokenService {
         return redisTemplate.opsForValue().get(key);
     }
 
+    public boolean exists(String id, String refreshToken) {
+        return refreshToken.equals(findByUserId(id));
+    }
+
     public void deleteByUserId(String userId) {
         String key = REFRESH_TOKEN_KEY_PREFIX + userId;
         redisTemplate.delete(key);

@@ -1,8 +1,8 @@
 package com.nhnacademy.heukbaekbook_auth.config;
 
 import com.nhnacademy.heukbaekbook_auth.filter.LoginFilter;
+import com.nhnacademy.heukbaekbook_auth.service.AuthService;
 import com.nhnacademy.heukbaekbook_auth.service.MemberService;
-import com.nhnacademy.heukbaekbook_auth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,8 +20,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
-    private final JwtUtil jwtUtil;
     private final MemberService memberService;
+    private final AuthService authService;
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -51,7 +51,14 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        http.addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil, memberService), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAt(
+                new LoginFilter(
+                        authenticationManager(authenticationConfiguration),
+                        memberService,
+                        authService
+                ),
+                UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }
