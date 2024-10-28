@@ -14,6 +14,7 @@ import java.util.Date;
 public class JwtUtil {
     private static final String ID = "id";
     private static final String ROLE = "role";
+    private static final String SUB = "sub";
 
     private final SecretKey secretKey;
     private final SecretKey refreshSecretKey;
@@ -23,9 +24,10 @@ public class JwtUtil {
         this.refreshSecretKey = new SecretKeySpec(refresh.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
     }
 
-    public String createJwt(String id, String role, Long expiredMs) {
+    public String createJwt(Long customerId, String loginId, String role, Long expiredMs) {
         return Jwts.builder()
-                .claim(ID, id)
+                .claim(SUB, String.valueOf(customerId))
+                .claim(ID, loginId)
                 .claim(ROLE, role)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
@@ -33,9 +35,10 @@ public class JwtUtil {
                 .compact();
     }
 
-    public String createRefreshJwt(String id, String role, Long expiredMs) {
+    public String createRefreshJwt(Long customerId, String loginId, String role, Long expiredMs) {
         return Jwts.builder()
-                .claim(ID, id)
+                .claim(SUB, String.valueOf(customerId))
+                .claim(ID, loginId)
                 .claim(ROLE, role)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
@@ -58,7 +61,19 @@ public class JwtUtil {
         }
     }
 
-    public String getIdFromToken(String token, boolean isRefreshToken) {
+    public Long getCustomerIdFromToken(String token, boolean isRefreshToken) {
+        SecretKey key = isRefreshToken ? refreshSecretKey : secretKey;
+        String customerIdStr = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get(SUB, String.class);
+
+        return Long.valueOf(customerIdStr);
+    }
+
+    public String getLoginIdFromToken(String token, boolean isRefreshToken) {
         SecretKey key = isRefreshToken ? refreshSecretKey : secretKey;
         return Jwts.parser()
                 .verifyWith(key)
