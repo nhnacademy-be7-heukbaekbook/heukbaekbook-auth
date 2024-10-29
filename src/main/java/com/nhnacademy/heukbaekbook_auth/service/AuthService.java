@@ -30,23 +30,24 @@ public class AuthService {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        String id = jwtUtil.getIdFromToken(refreshToken, true);
+        Long customerId = jwtUtil.getCustomerIdFromToken(refreshToken, true);
+        String loginId = jwtUtil.getLoginIdFromToken(refreshToken, true);
         String role = jwtUtil.getRoleFromToken(refreshToken, true);
 
-        if (!refreshTokenService.exists(id, refreshToken)) {
+        if (!refreshTokenService.exists(loginId, refreshToken)) {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        issueTokens(response, id, role);
+        issueTokens(response, customerId, loginId, role);
     }
 
-    public void issueTokens(HttpServletResponse response, String id, String role) {
+    public void issueTokens(HttpServletResponse response, Long customerId, String loginId, String role) {
         // 토큰 생성
-        String accessToken = jwtUtil.createJwt(id, role, ACCESS_TOKEN_EXPIRATION_TIME);
-        String refreshToken = jwtUtil.createRefreshJwt(id, role, REFRESH_TOKEN_EXPIRATION_TIME);
+        String accessToken = jwtUtil.createJwt(customerId, loginId, role, ACCESS_TOKEN_EXPIRATION_TIME);
+        String refreshToken = jwtUtil.createRefreshJwt(customerId, loginId, role, REFRESH_TOKEN_EXPIRATION_TIME);
 
         // Refresh Token 저장
-        refreshTokenService.save(id, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
+        refreshTokenService.save(loginId, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
 
         // 응답에 토큰 추가
         response.addHeader(HttpHeaders.AUTHORIZATION, TOKEN_PREFIX + accessToken);
@@ -55,7 +56,7 @@ public class AuthService {
 
     public void logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
-            String id = jwtUtil.getIdFromToken(refreshToken, true);
+            String id = jwtUtil.getLoginIdFromToken(refreshToken, true);
             refreshTokenService.deleteByUserId(id);
         }
     }

@@ -23,45 +23,50 @@ class JwtUtilTest {
 
     @Test
     void testCreateJwt() {
-        String id = "user123";
+        Long customerId = 123L;
+        String loginId = "user123";
         String role = "ROLE_MEMBER";
         long expiredMs = 1000L * 60 * 60;
 
-        String token = jwtUtil.createJwt(id, role, expiredMs);
+        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
 
         Claims payload = Jwts.parser()
                 .verifyWith(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
                 .build()
                 .parseSignedClaims(token).getPayload();
 
-        assertEquals(id, payload.get("id", String.class));
+        assertEquals(customerId, Long.parseLong(payload.get("sub", String.class)));
+        assertEquals(loginId, payload.get("id", String.class));
         assertEquals(role, payload.get("role", String.class));
     }
 
     @Test
     void testCreateRefreshJwt() {
-        String id = "user123";
+        Long customerId = 123L;
+        String loginId = "user123";
         String role = "ROLE_MEMBER";
         long expiredMs = 1000L * 60 * 60;
 
-        String refreshToken = jwtUtil.createRefreshJwt(id, role, expiredMs);
+        String refreshToken = jwtUtil.createRefreshJwt(customerId, loginId, role, expiredMs);
 
         Claims payload = Jwts.parser()
                 .verifyWith(new SecretKeySpec(refreshSecretKey.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
                 .build()
                 .parseSignedClaims(refreshToken).getPayload();
 
-        assertEquals(id, payload.get("id", String.class));
+        assertEquals(customerId, Long.parseLong(payload.get("sub", String.class)));
+        assertEquals(loginId, payload.get("id", String.class));
         assertEquals(role, payload.get("role", String.class));
     }
 
     @Test
     void testValidateToken_ValidToken() {
-        String id = "user123";
+        Long customerId = 123L;
+        String loginId = "user123";
         String role = "ROLE_MEMBER";
         long expiredMs = 1000L * 60 * 60;
 
-        String token = jwtUtil.createJwt(id, role, expiredMs);
+        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
 
         boolean isValid = jwtUtil.validateToken(token, false);
 
@@ -78,25 +83,41 @@ class JwtUtilTest {
     }
 
     @Test
-    void testGetIdFromToken() {
-        String id = "user123";
+    void testGetCustomerIdFromToken() {
+        Long customerId = 123L;
+        String loginId = "user123";
         String role = "ROLE_MEMBER";
         long expiredMs = 1000L * 60 * 60;
 
-        String token = jwtUtil.createJwt(id, role, expiredMs);
+        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
 
-        String extractedId = jwtUtil.getIdFromToken(token, false);
+        Long extractedCustomerId = jwtUtil.getCustomerIdFromToken(token, false);
 
-        assertEquals(id, extractedId);
+        assertEquals(customerId, extractedCustomerId);
+    }
+
+    @Test
+    void testGetLoginIdFromToken() {
+        Long customerId = 123L;
+        String loginId = "user123";
+        String role = "ROLE_MEMBER";
+        long expiredMs = 1000L * 60 * 60;
+
+        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
+
+        String extractedLoginId = jwtUtil.getLoginIdFromToken(token, false);
+
+        assertEquals(loginId, extractedLoginId);
     }
 
     @Test
     void testGetRoleFromToken() {
-        String id = "user123";
+        Long customerId = 123L;
+        String loginId = "user123";
         String role = "ROLE_MEMBER";
         long expiredMs = 1000L * 60 * 60;
 
-        String token = jwtUtil.createJwt(id, role, expiredMs);
+        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
 
         String extractedRole = jwtUtil.getRoleFromToken(token, false);
 
@@ -105,11 +126,12 @@ class JwtUtilTest {
 
     @Test
     void testValidateToken_ExpiredToken() {
-        String id = "user123";
+        Long customerId = 123L;
+        String loginId = "user123";
         String role = "ROLE_MEMBER";
         long expiredMs = -1000L;
 
-        String token = jwtUtil.createJwt(id, role, expiredMs);
+        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
 
         boolean isValid = jwtUtil.validateToken(token, false);
 

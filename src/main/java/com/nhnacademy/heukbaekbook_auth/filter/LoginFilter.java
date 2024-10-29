@@ -50,11 +50,12 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority auth = iterator.next();
 
-        String id = customUserDetails.getUsername();
+        String loginId = customUserDetails.getUsername();
         String role = auth.getAuthority();
+        Long customerId = memberService.getCustomerId(loginId);
 
-        authService.issueTokens(response, id, role);
-        memberService.updateLastLogin(id);
+        authService.issueTokens(response, customerId, loginId, role);
+        memberService.updateLastLogin(loginId);
     }
 
     @Override
