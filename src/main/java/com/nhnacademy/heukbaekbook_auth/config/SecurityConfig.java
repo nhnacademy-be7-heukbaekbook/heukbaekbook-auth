@@ -1,5 +1,6 @@
 package com.nhnacademy.heukbaekbook_auth.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.heukbaekbook_auth.filter.LoginFilter;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
 import com.nhnacademy.heukbaekbook_auth.service.MemberService;
@@ -22,6 +23,7 @@ public class SecurityConfig {
     private final AuthenticationConfiguration authenticationConfiguration;
     private final MemberService memberService;
     private final AuthService authService;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -43,7 +45,7 @@ public class SecurityConfig {
         http.httpBasic(AbstractHttpConfigurer::disable);
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers("/login", "/admin/login").permitAll()
+                auth.requestMatchers("/api/auth/login", "/api/auth/admin/login").permitAll()
                         .requestMatchers("/api/auth/logout", "/api/auth/refresh").permitAll()
                         .anyRequest().authenticated()
         );
@@ -52,14 +54,15 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        http.addFilterAt(
-                new LoginFilter(
-                        authenticationManager(authenticationConfiguration),
-                        memberService,
-                        authService
-                ),
-                UsernamePasswordAuthenticationFilter.class
+        LoginFilter loginFilter = new LoginFilter(
+                authenticationManager(authenticationConfiguration),
+                memberService,
+                authService,
+                objectMapper
         );
+        loginFilter.setFilterProcessesUrl("/api/auth/login");
+
+        http.addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
