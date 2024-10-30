@@ -5,7 +5,6 @@ import com.nhnacademy.heukbaekbook_auth.util.CookieUtil;
 import com.nhnacademy.heukbaekbook_auth.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private static final String MESSAGE = "유효하지 않은 Refresh Token 입니다.";
     public static final String REFRESH_TOKEN = "refreshToken";
-    private static final String TOKEN_PREFIX = "Bearer ";
+    public static final String ACCESS_TOKEN = "accessToken";
     private static final long ACCESS_TOKEN_EXPIRATION_TIME = 30 * 60 * 1000L;                       // 30 min
     private static final long REFRESH_TOKEN_EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000L;             // 7 days
 
@@ -50,7 +49,7 @@ public class AuthService {
         refreshTokenService.save(loginId, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
 
         // 응답에 토큰 추가
-        response.addHeader(HttpHeaders.AUTHORIZATION, TOKEN_PREFIX + accessToken);
+        response.addCookie(CookieUtil.createCookie(ACCESS_TOKEN,  accessToken, ACCESS_TOKEN_EXPIRATION_TIME));
         response.addCookie(CookieUtil.createCookie(REFRESH_TOKEN, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME));
     }
 
