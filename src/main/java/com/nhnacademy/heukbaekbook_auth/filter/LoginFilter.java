@@ -1,7 +1,10 @@
 package com.nhnacademy.heukbaekbook_auth.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.heukbaekbook_auth.dto.CustomUserDetails;
+import com.nhnacademy.heukbaekbook_auth.dto.MemberLoginRequest;
 import com.nhnacademy.heukbaekbook_auth.exception.IdOrPasswordMissingException;
+import com.nhnacademy.heukbaekbook_auth.exception.InvalidLoginRequestException;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
 import com.nhnacademy.heukbaekbook_auth.service.MemberService;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
@@ -26,20 +29,25 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final AuthenticationManager authenticationManager;
     private final MemberService memberService;
     private final AuthService authService;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        String id = request.getParameter("id");
-        String password = obtainPassword(request);
+        try {
+            MemberLoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), MemberLoginRequest.class);
 
-        if (id == null || password == null || id.isBlank() || password.isBlank()) {
-            throw new IdOrPasswordMissingException();
+            if (loginRequest.loginId() == null || loginRequest.password() == null ||
+                    loginRequest.loginId().isBlank() || loginRequest.password().isBlank()) {
+                throw new IdOrPasswordMissingException();
+            }
+
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(loginRequest.loginId(), loginRequest.password(), null);
+
+            return authenticationManager.authenticate(authToken);
+        } catch (IOException e) {
+            throw new InvalidLoginRequestException("요청을 파싱하는데 실패했습니다.");
         }
-
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(id, password, null);
-
-        return authenticationManager.authenticate(authToken);
     }
 
     @Override
