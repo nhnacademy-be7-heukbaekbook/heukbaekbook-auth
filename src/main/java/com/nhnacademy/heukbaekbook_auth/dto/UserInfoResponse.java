@@ -1,4 +1,6 @@
 package com.nhnacademy.heukbaekbook_auth.dto;
 
-public record UserInfoResponse(Long id, String loginId, String password) {
+import java.io.Serializable;
+
+public record UserInfoResponse(Long id, String loginId, String password) implements Serializable {
 }
