@@ -53,7 +53,7 @@ class AuthServiceTest {
         authService.refreshAccessToken(response, VALID_REFRESH_TOKEN);
 
         verify(response, times(2)).addCookie(any(Cookie.class));
-        verify(refreshTokenService).save(eq(LOGIN_ID), eq(newRefreshToken), eq(REFRESH_TOKEN_EXPIRATION_TIME));
+        verify(refreshTokenService).save(LOGIN_ID, newRefreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
     }
 
 
