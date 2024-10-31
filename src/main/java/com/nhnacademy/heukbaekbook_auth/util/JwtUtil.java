@@ -46,25 +46,37 @@ public class JwtUtil {
                 .compact();
     }
 
-    public boolean validateToken(String token, boolean isRefreshToken) {
+    public boolean validateRefreshToken(String token) {
         try {
-            SecretKey key = isRefreshToken ? refreshSecretKey : secretKey;
-
             Jwts.parser()
-                    .verifyWith(key)
+                    .verifyWith(refreshSecretKey)
                     .build()
                     .parseSignedClaims(token);
 
-            return true;
+            return !isExpiredRefreshToken(token);
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
-    public Long getCustomerIdFromToken(String token, boolean isRefreshToken) {
-        SecretKey key = isRefreshToken ? refreshSecretKey : secretKey;
+    public boolean isExpiredRefreshToken(String token) {
+        try {
+            Date expirationDate = Jwts.parser()
+                    .verifyWith(refreshSecretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getExpiration();
+
+            return expirationDate.before(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            return true;
+        }
+    }
+
+    public Long getIdFromRefreshToken(String token) {
         String customerIdStr = Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(refreshSecretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
@@ -73,20 +85,18 @@ public class JwtUtil {
         return Long.valueOf(customerIdStr);
     }
 
-    public String getLoginIdFromToken(String token, boolean isRefreshToken) {
-        SecretKey key = isRefreshToken ? refreshSecretKey : secretKey;
+    public String getLoginIdFromRefreshToken(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(refreshSecretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .get(ID, String.class);
     }
 
-    public String getRoleFromToken(String token, boolean isRefreshToken) {
-        SecretKey key = isRefreshToken ? refreshSecretKey : secretKey;
+    public String getRoleFromRefreshToken(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(refreshSecretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()

@@ -25,13 +25,13 @@ public class AuthService {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        if (!jwtUtil.validateToken(refreshToken, true)) {
+        if (!jwtUtil.validateRefreshToken(refreshToken)) {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        Long customerId = jwtUtil.getCustomerIdFromToken(refreshToken, true);
-        String loginId = jwtUtil.getLoginIdFromToken(refreshToken, true);
-        String role = jwtUtil.getRoleFromToken(refreshToken, true);
+        Long customerId = jwtUtil.getIdFromRefreshToken(refreshToken);
+        String loginId = jwtUtil.getLoginIdFromRefreshToken(refreshToken);
+        String role = jwtUtil.getRoleFromRefreshToken(refreshToken);
 
         if (!refreshTokenService.exists(loginId, refreshToken)) {
             throw new InvalidTokenException(MESSAGE);
@@ -55,8 +55,8 @@ public class AuthService {
 
     public void logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
-            String id = jwtUtil.getLoginIdFromToken(refreshToken, true);
-            refreshTokenService.deleteByUserId(id);
+            String loginId = jwtUtil.getLoginIdFromRefreshToken(refreshToken);
+            refreshTokenService.deleteByUserId(loginId);
         }
     }
 }
