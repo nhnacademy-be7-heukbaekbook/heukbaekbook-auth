@@ -1,6 +1,7 @@
 package com.nhnacademy.heukbaekbook_auth.util;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,129 +13,109 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JwtUtilTest {
 
+    private static final String TEST_SECRET_KEY = "testSecretKey12345678901234567890";
+    private static final String TEST_REFRESH_SECRET_KEY = "testRefreshSecretKey12345678901234567890";
+    private static final Long CUSTOMER_ID = 1L;
+    private static final String LOGIN_ID = "testLoginId";
+    private static final String ROLE = "ROLE_MEMBER";
+    private static final Long EXPIRED_MS = 60 * 1000L;
+
     private JwtUtil jwtUtil;
-    private final String secretKey = "for-testing-secret-key-aaaaaaaaaaaaaaaaaaaaaa";
-    private final String refreshSecretKey = "for-testing-refresh-secret-key-aaaaaaaaaaaaaaaaaaaaaa";
 
     @BeforeEach
     void setUp() {
-        jwtUtil = new JwtUtil(secretKey, refreshSecretKey);
+        this.jwtUtil = new JwtUtil(TEST_SECRET_KEY, TEST_REFRESH_SECRET_KEY);
     }
 
     @Test
-    void testCreateJwt() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = 1000L * 60 * 60;
+    void createJwt_shouldGenerateValidJwt() {
+        String token = jwtUtil.createJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
 
-        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
-
+        assertNotNull(token);
         Claims payload = Jwts.parser()
-                .verifyWith(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
+                .verifyWith(new SecretKeySpec(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
                 .build()
                 .parseSignedClaims(token).getPayload();
 
-        assertEquals(customerId, Long.parseLong(payload.get("sub", String.class)));
-        assertEquals(loginId, payload.get("id", String.class));
-        assertEquals(role, payload.get("role", String.class));
+        assertEquals(CUSTOMER_ID, Long.parseLong(payload.get("sub", String.class)));
+        assertEquals(LOGIN_ID, payload.get("id", String.class));
+        assertEquals(ROLE, payload.get("role", String.class));
     }
 
     @Test
-    void testCreateRefreshJwt() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = 1000L * 60 * 60;
+    void createRefreshJwt_shouldGenerateValidRefreshJwt() {
+        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
 
-        String refreshToken = jwtUtil.createRefreshJwt(customerId, loginId, role, expiredMs);
-
+        assertNotNull(refreshToken);
         Claims payload = Jwts.parser()
-                .verifyWith(new SecretKeySpec(refreshSecretKey.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
+                .verifyWith(new SecretKeySpec(TEST_REFRESH_SECRET_KEY.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
                 .build()
                 .parseSignedClaims(refreshToken).getPayload();
 
-        assertEquals(customerId, Long.parseLong(payload.get("sub", String.class)));
-        assertEquals(loginId, payload.get("id", String.class));
-        assertEquals(role, payload.get("role", String.class));
+        assertEquals(CUSTOMER_ID, Long.parseLong(payload.get("sub", String.class)));
+        assertEquals(LOGIN_ID, payload.get("id", String.class));
+        assertEquals(ROLE, payload.get("role", String.class));
     }
 
     @Test
-    void testValidateToken_ValidToken() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = 1000L * 60 * 60;
+    void validateRefreshToken_withValidToken_shouldReturnTrue() {
+        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
 
-        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
-
-        boolean isValid = jwtUtil.validateToken(token, false);
-
-        assertTrue(isValid);
+        assertTrue(jwtUtil.validateRefreshToken(refreshToken));
     }
 
     @Test
-    void testValidateToken_InvalidToken() {
-        String invalidToken = "invalidToken";
+    void validateRefreshToken_withInvalidToken() {
+        String invalidToken = "invalid.token";
 
-        boolean isValid = jwtUtil.validateToken(invalidToken, false);
-
-        assertFalse(isValid);
+        assertFalse(jwtUtil.validateRefreshToken(invalidToken));
     }
 
     @Test
-    void testGetCustomerIdFromToken() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = 1000L * 60 * 60;
+    void isExpiredRefreshToken_withValidToken() {
+        String validToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, 5 * 60 * 1000L);  // 5 minutes validity
 
-        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
-
-        Long extractedCustomerId = jwtUtil.getCustomerIdFromToken(token, false);
-
-        assertEquals(customerId, extractedCustomerId);
+        assertFalse(jwtUtil.isExpiredRefreshToken(validToken));
     }
 
     @Test
-    void testGetLoginIdFromToken() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = 1000L * 60 * 60;
+    void isExpiredRefreshToken_withExpiredToken() {
+        String expiredToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, -5 * 60 * 1000L);  // Expired 5 minutes ago
 
-        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
-
-        String extractedLoginId = jwtUtil.getLoginIdFromToken(token, false);
-
-        assertEquals(loginId, extractedLoginId);
+        assertTrue(jwtUtil.isExpiredRefreshToken(expiredToken));
     }
 
     @Test
-    void testGetRoleFromToken() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = 1000L * 60 * 60;
+    void isExpiredRefreshToken_withInvalidToken() {
+        String invalidToken = "invalid.token.here";
 
-        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
-
-        String extractedRole = jwtUtil.getRoleFromToken(token, false);
-
-        assertEquals(role, extractedRole);
+        assertTrue(jwtUtil.isExpiredRefreshToken(invalidToken));
     }
 
     @Test
-    void testValidateToken_ExpiredToken() {
-        Long customerId = 123L;
-        String loginId = "user123";
-        String role = "ROLE_MEMBER";
-        long expiredMs = -1000L;
+    void getIdFromRefreshToken() {
+        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
 
-        String token = jwtUtil.createJwt(customerId, loginId, role, expiredMs);
+        Long extractedCustomerId = jwtUtil.getIdFromRefreshToken(refreshToken);
 
-        boolean isValid = jwtUtil.validateToken(token, false);
+        assertEquals(CUSTOMER_ID, extractedCustomerId);
+    }
 
-        assertFalse(isValid);
+    @Test
+    void getLoginIdFromRefreshToken() {
+        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+
+        String extractedLoginId = jwtUtil.getLoginIdFromRefreshToken(refreshToken);
+
+        assertEquals(LOGIN_ID, extractedLoginId);
+    }
+
+    @Test
+    void getRoleFromRefreshTokene() {
+        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+
+        String extractedRole = jwtUtil.getRoleFromRefreshToken(refreshToken);
+
+        assertEquals(ROLE, extractedRole);
     }
 }
