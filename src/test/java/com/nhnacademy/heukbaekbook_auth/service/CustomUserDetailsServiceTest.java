@@ -25,7 +25,7 @@ class CustomUserDetailsServiceTest {
     private MemberRepository memberRepository;
 
     @InjectMocks
-    private CustomUserDetailsService customUserDetailsService;
+    private MemberUserDetailsService customUserDetailsService;
 
     @Test
     void testLoadUserByUsername_ActiveMember() {

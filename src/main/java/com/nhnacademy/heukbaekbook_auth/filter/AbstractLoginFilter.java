@@ -2,12 +2,10 @@ package com.nhnacademy.heukbaekbook_auth.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.heukbaekbook_auth.dto.CustomUserDetails;
-import com.nhnacademy.heukbaekbook_auth.dto.MemberLoginRequest;
+import com.nhnacademy.heukbaekbook_auth.dto.LoginRequest;
 import com.nhnacademy.heukbaekbook_auth.exception.IdOrPasswordMissingException;
 import com.nhnacademy.heukbaekbook_auth.exception.InvalidLoginRequestException;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
-import com.nhnacademy.heukbaekbook_auth.service.MemberService;
-import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,16 +23,16 @@ import java.util.Collection;
 import java.util.Iterator;
 
 @RequiredArgsConstructor
-public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+public abstract class AbstractLoginFilter extends UsernamePasswordAuthenticationFilter {
     private final AuthenticationManager authenticationManager;
-    private final MemberService memberService;
     private final AuthService authService;
     private final ObjectMapper objectMapper;
+
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
         try {
-            MemberLoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), MemberLoginRequest.class);
+            LoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), LoginRequest.class);
 
             if (loginRequest.loginId() == null || loginRequest.password() == null ||
                     loginRequest.loginId().isBlank() || loginRequest.password().isBlank()) {
@@ -54,20 +52,21 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
 
+        String loginId = customUserDetails.getUsername();
+        Long customerId = customUserDetails.getId();
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
-        GrantedAuthority auth = iterator.next();
-
-        String loginId = customUserDetails.getUsername();
-        String role = auth.getAuthority();
-        Long customerId = memberService.getCustomerId(loginId);
+        String role = iterator.hasNext() ? iterator.next().getAuthority() : null;
 
         authService.issueTokens(response, customerId, loginId, role);
-        memberService.updateLastLogin(loginId);
+        afterSuccessfulAuthentication(loginId);
     }
 
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException, ServletException {
-        response.setStatus(HTTPResponse.SC_UNAUTHORIZED);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    }
+
+    protected void afterSuccessfulAuthentication(String loginId) {
     }
 }

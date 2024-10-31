@@ -9,23 +9,26 @@ import java.util.List;
 
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
-    private static final String MEMBER_ROLE = "ROLE_MEMBER";
-
-    private final MemberLoginRequest memberLoginRequest;
+    private final UserInfoResponse userInfoResponse;
+    private final String role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> MEMBER_ROLE);
+        return List.of(() -> role);
     }
 
     @Override
     public String getPassword() {
-        return memberLoginRequest.password();
+        return userInfoResponse.password();
     }
 
     @Override
     public String getUsername() {
-        return memberLoginRequest.loginId();
+        return userInfoResponse.loginId();
+    }
+
+    public Long getId() {
+        return userInfoResponse.id();
     }
 
     @Override
