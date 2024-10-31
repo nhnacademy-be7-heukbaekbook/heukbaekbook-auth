@@ -101,10 +101,7 @@ class LoginFilterTest {
     void loginFilter_withMissingCredentials_shouldReturnUnauthorized() {
         LoginRequest loginRequest = new LoginRequest("", "");
 
-        assertThrows(IdOrPasswordMissingException.class, () ->
-                mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest))));
+        assertThrows(IdOrPasswordMissingException.class, () -> performLoginRequest(loginRequest));
 
         verify(authService, never()).issueTokens(any(), anyLong(), anyString(), anyString());
     }
@@ -112,42 +109,45 @@ class LoginFilterTest {
     @Test
     void memberLoginFilter_withMissingIdOrPassword_shouldThrowIdOrPasswordMissingException() {
         LoginRequest missingIdRequest = new LoginRequest("", "password");
-        assertThrows(IdOrPasswordMissingException.class, () ->
-                mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(missingIdRequest))
-                        .with(SecurityMockMvcRequestPostProcessors.csrf())));
+        assertThrows(IdOrPasswordMissingException.class, () -> performLogin(missingIdRequest));
 
         LoginRequest missingPasswordRequest = new LoginRequest("user", "");
-        assertThrows(IdOrPasswordMissingException.class, () ->
-                mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(missingPasswordRequest))
-                        .with(SecurityMockMvcRequestPostProcessors.csrf())));
+        assertThrows(IdOrPasswordMissingException.class, () -> performLogin(missingPasswordRequest));
 
         LoginRequest nullIdRequest = new LoginRequest(null, "password");
-        assertThrows(IdOrPasswordMissingException.class, () ->
-                mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(nullIdRequest))
-                        .with(SecurityMockMvcRequestPostProcessors.csrf())));
+        assertThrows(IdOrPasswordMissingException.class, () -> performLogin(nullIdRequest));
 
         LoginRequest nullPasswordRequest = new LoginRequest("user", null);
-        assertThrows(IdOrPasswordMissingException.class, () ->
-                mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(nullPasswordRequest))
-                        .with(SecurityMockMvcRequestPostProcessors.csrf())));
+        assertThrows(IdOrPasswordMissingException.class, () -> performLogin(nullPasswordRequest));
     }
 
     @Test
     void memberLoginFilter_withInvalidJson_shouldThrowInvalidLoginRequestException() {
         String invalidJson = "{invalidJson}";
 
-        assertThrows(InvalidLoginRequestException.class, () ->
-                mockMvc.perform(post("/api/auth/login")
+        assertThrows(InvalidLoginRequestException.class, () -> performLoginWithContent(invalidJson));
+    }
+
+    private void performLoginRequest(LoginRequest loginRequest) throws Exception {
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidJson)
-                        .with(SecurityMockMvcRequestPostProcessors.csrf())));
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andReturn();
+    }
+
+    private void performLoginWithContent(String content) throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(content)
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
+    }
+
+    private void performLogin(LoginRequest loginRequest) throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest))
+                        .with(SecurityMockMvcRequestPostProcessors.csrf()))
+                .andReturn();
     }
 }
