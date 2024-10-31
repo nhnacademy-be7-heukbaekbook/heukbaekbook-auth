@@ -1,10 +1,11 @@
 package com.nhnacademy.heukbaekbook_auth.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.heukbaekbook_auth.dto.CustomUserDetails;
+import com.nhnacademy.heukbaekbook_auth.dto.LoginRequest;
 import com.nhnacademy.heukbaekbook_auth.exception.IdOrPasswordMissingException;
+import com.nhnacademy.heukbaekbook_auth.exception.InvalidLoginRequestException;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
-import com.nhnacademy.heukbaekbook_auth.service.MemberService;
-import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,43 +23,50 @@ import java.util.Collection;
 import java.util.Iterator;
 
 @RequiredArgsConstructor
-public class LoginFilter extends UsernamePasswordAuthenticationFilter {
+public abstract class AbstractLoginFilter extends UsernamePasswordAuthenticationFilter {
     private final AuthenticationManager authenticationManager;
-    private final MemberService memberService;
     private final AuthService authService;
+    private final ObjectMapper objectMapper;
+
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-        String id = request.getParameter("id");
-        String password = obtainPassword(request);
+        try {
+            LoginRequest loginRequest = objectMapper.readValue(request.getInputStream(), LoginRequest.class);
 
-        if (id == null || password == null || id.isBlank() || password.isBlank()) {
-            throw new IdOrPasswordMissingException();
+            if (loginRequest.loginId() == null || loginRequest.password() == null ||
+                    loginRequest.loginId().isBlank() || loginRequest.password().isBlank()) {
+                throw new IdOrPasswordMissingException();
+            }
+
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(loginRequest.loginId(), loginRequest.password(), null);
+
+            return authenticationManager.authenticate(authToken);
+        } catch (IOException e) {
+            throw new InvalidLoginRequestException("요청을 파싱하는데 실패했습니다.");
         }
-
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(id, password, null);
-
-        return authenticationManager.authenticate(authToken);
     }
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
 
+        String loginId = customUserDetails.getUsername();
+        Long customerId = customUserDetails.getId();
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
-        GrantedAuthority auth = iterator.next();
+        String role = iterator.hasNext() ? iterator.next().getAuthority() : null;
 
-        String id = customUserDetails.getUsername();
-        String role = auth.getAuthority();
-
-        authService.issueTokens(response, id, role);
-        memberService.updateLastLogin(id);
+        authService.issueTokens(response, customerId, loginId, role);
+        afterSuccessfulAuthentication(loginId);
     }
 
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException, ServletException {
-        response.setStatus(HTTPResponse.SC_UNAUTHORIZED);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    }
+
+    protected void afterSuccessfulAuthentication(String loginId) {
     }
 }

@@ -2,8 +2,8 @@ package com.nhnacademy.heukbaekbook_auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record MemberLoginRequest(
-        @NotBlank String id,
+public record LoginRequest(
+        @NotBlank String loginId,
         @NotBlank String password
 ) {
 }

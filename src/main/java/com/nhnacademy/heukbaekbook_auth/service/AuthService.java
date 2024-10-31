@@ -5,7 +5,6 @@ import com.nhnacademy.heukbaekbook_auth.util.CookieUtil;
 import com.nhnacademy.heukbaekbook_auth.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private static final String MESSAGE = "유효하지 않은 Refresh Token 입니다.";
     public static final String REFRESH_TOKEN = "refreshToken";
-    private static final String TOKEN_PREFIX = "Bearer ";
+    public static final String ACCESS_TOKEN = "accessToken";
     private static final long ACCESS_TOKEN_EXPIRATION_TIME = 30 * 60 * 1000L;                       // 30 min
     private static final long REFRESH_TOKEN_EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000L;             // 7 days
 
@@ -26,37 +25,38 @@ public class AuthService {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        if (!jwtUtil.validateToken(refreshToken, true)) {
+        if (!jwtUtil.validateRefreshToken(refreshToken)) {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        String id = jwtUtil.getIdFromToken(refreshToken, true);
-        String role = jwtUtil.getRoleFromToken(refreshToken, true);
+        Long customerId = jwtUtil.getIdFromRefreshToken(refreshToken);
+        String loginId = jwtUtil.getLoginIdFromRefreshToken(refreshToken);
+        String role = jwtUtil.getRoleFromRefreshToken(refreshToken);
 
-        if (!refreshTokenService.exists(id, refreshToken)) {
+        if (!refreshTokenService.exists(loginId, refreshToken)) {
             throw new InvalidTokenException(MESSAGE);
         }
 
-        issueTokens(response, id, role);
+        issueTokens(response, customerId, loginId, role);
     }
 
-    public void issueTokens(HttpServletResponse response, String id, String role) {
+    public void issueTokens(HttpServletResponse response, Long customerId, String loginId, String role) {
         // 토큰 생성
-        String accessToken = jwtUtil.createJwt(id, role, ACCESS_TOKEN_EXPIRATION_TIME);
-        String refreshToken = jwtUtil.createRefreshJwt(id, role, REFRESH_TOKEN_EXPIRATION_TIME);
+        String accessToken = jwtUtil.createJwt(customerId, loginId, role, ACCESS_TOKEN_EXPIRATION_TIME);
+        String refreshToken = jwtUtil.createRefreshJwt(customerId, loginId, role, REFRESH_TOKEN_EXPIRATION_TIME);
 
         // Refresh Token 저장
-        refreshTokenService.save(id, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
+        refreshTokenService.save(loginId, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
 
         // 응답에 토큰 추가
-        response.addHeader(HttpHeaders.AUTHORIZATION, TOKEN_PREFIX + accessToken);
+        response.addCookie(CookieUtil.createCookie(ACCESS_TOKEN,  accessToken, ACCESS_TOKEN_EXPIRATION_TIME));
         response.addCookie(CookieUtil.createCookie(REFRESH_TOKEN, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME));
     }
 
     public void logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
-            String id = jwtUtil.getIdFromToken(refreshToken, true);
-            refreshTokenService.deleteByUserId(id);
+            String loginId = jwtUtil.getLoginIdFromRefreshToken(refreshToken);
+            refreshTokenService.deleteByUserId(loginId);
         }
     }
 }
