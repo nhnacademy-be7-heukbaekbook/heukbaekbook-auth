@@ -15,12 +15,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
 
 @RequiredArgsConstructor
 public abstract class AbstractLoginFilter extends UsernamePasswordAuthenticationFilter {
@@ -52,13 +49,11 @@ public abstract class AbstractLoginFilter extends UsernamePasswordAuthentication
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
 
+        Long id = customUserDetails.getId();
         String loginId = customUserDetails.getUsername();
-        Long customerId = customUserDetails.getId();
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
-        String role = iterator.hasNext() ? iterator.next().getAuthority() : null;
+        String role = customUserDetails.getAuthorities().iterator().next().getAuthority();
 
-        authService.issueTokens(response, customerId, loginId, role);
+        authService.issueTokens(response, id, role);
         afterSuccessfulAuthentication(loginId);
     }
 
