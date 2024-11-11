@@ -74,7 +74,7 @@ class LoginFilterTest {
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk());
 
-        verify(authService).issueTokens(any(), eq(1L), eq("user"), eq("ROLE_USER"));
+        verify(authService).issueTokens(any(), eq(1L), eq("ROLE_USER"));
         verify(memberService).updateLastLogin("user");
     }
 
@@ -94,7 +94,7 @@ class LoginFilterTest {
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk());
 
-        verify(authService).issueTokens(any(), eq(1L), eq("admin"), eq("ROLE_ADMIN"));
+        verify(authService).issueTokens(any(), eq(1L),  eq("ROLE_ADMIN"));
     }
 
     @Test
@@ -103,7 +103,7 @@ class LoginFilterTest {
 
         assertThrows(IdOrPasswordMissingException.class, () -> performLoginRequest(loginRequest));
 
-        verify(authService, never()).issueTokens(any(), anyLong(), anyString(), anyString());
+        verify(authService, never()).issueTokens(any(), anyLong(), anyString());
     }
 
     @Test
