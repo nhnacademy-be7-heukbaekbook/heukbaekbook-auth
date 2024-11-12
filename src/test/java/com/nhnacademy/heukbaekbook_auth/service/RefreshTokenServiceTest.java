@@ -1,14 +1,11 @@
 package com.nhnacademy.heukbaekbook_auth.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
-
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -16,66 +13,64 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenServiceTest {
 
-    @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private static final Long USER_ID = 1L;
+    private static final String ROLE = "ROLE_MEMBER";
+    private static final String REFRESH_TOKEN = "sampleRefreshToken";
+    private static final long EXPIRATION_TIME = 3600L;
 
     @Mock
-    private ValueOperations<String, String> valueOperations;
+    private RedisService redisService;
 
     @InjectMocks
     private RefreshTokenService refreshTokenService;
 
     @Test
     void testSave() {
-        String userId = "user123";
-        String refreshToken = "testRefreshToken";
-        long expirationTime = 60000;
+        refreshTokenService.save(USER_ID, ROLE, REFRESH_TOKEN, EXPIRATION_TIME);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-
-        refreshTokenService.save(userId, refreshToken, expirationTime);
-
-        String key = "refreshToken:" + userId;
-        verify(valueOperations).set(key, refreshToken, expirationTime, TimeUnit.MILLISECONDS);
+        String expectedKey = "refreshToken:" + ROLE + ":" + USER_ID;
+        verify(redisService, times(1)).save(expectedKey, REFRESH_TOKEN, EXPIRATION_TIME);
     }
 
     @Test
     void testFindByUserId() {
-        String userId = "user123";
-        String expectedToken = "testRefreshToken";
-        String key = "refreshToken:" + userId;
+        String expectedKey = "refreshToken:" + ROLE + ":" + USER_ID;
+        when(redisService.findByKey(expectedKey)).thenReturn(REFRESH_TOKEN);
 
-        when(valueOperations.get(key)).thenReturn(expectedToken);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        String result = refreshTokenService.findByUserId(USER_ID, ROLE);
 
-        String actualToken = refreshTokenService.findByUserId(userId);
-
-        assertEquals(actualToken, expectedToken);
-        verify(valueOperations).get(key);
+        assertEquals(REFRESH_TOKEN, result);
+        verify(redisService, times(1)).findByKey(expectedKey);
     }
 
     @Test
     void testExists() {
-        String userId = "user123";
-        String refreshToken = "testRefreshToken";
-        String key = "refreshToken:" + userId;
+        String expectedKey = "refreshToken:" + ROLE + ":" + USER_ID;
+        when(redisService.exists(expectedKey, REFRESH_TOKEN)).thenReturn(true);
 
-        when(valueOperations.get(key)).thenReturn(refreshToken);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        boolean result = refreshTokenService.exists(USER_ID, ROLE, REFRESH_TOKEN);
 
-        boolean exists = refreshTokenService.exists(userId, refreshToken);
+        assertTrue(result);
+        verify(redisService, times(1)).exists(expectedKey, REFRESH_TOKEN);
+    }
 
-        assertTrue(exists);
-        verify(valueOperations).get(key);
+    @Test
+    void testExists_tokenDoesNotExist() {
+        String expectedKey = "refreshToken:" + ROLE + ":" + USER_ID;
+        when(redisService.exists(expectedKey, REFRESH_TOKEN)).thenReturn(false);
+
+        boolean result = refreshTokenService.exists(USER_ID, ROLE, REFRESH_TOKEN);
+
+        assertFalse(result);
+        verify(redisService, times(1)).exists(expectedKey, REFRESH_TOKEN);
     }
 
     @Test
     void testDeleteByUserId() {
-        String userId = "user123";
-        String key = "refreshToken:" + userId;
+        String expectedKey = "refreshToken:" + ROLE + ":" + USER_ID;
 
-        refreshTokenService.deleteByUserId(userId);
+        refreshTokenService.deleteByUserId(USER_ID, ROLE);
 
-        verify(redisTemplate).delete(key);
+        verify(redisService, times(1)).deleteByKey(expectedKey);
     }
 }

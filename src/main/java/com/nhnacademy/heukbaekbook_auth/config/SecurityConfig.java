@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/login", "/api/auth/admin/login").permitAll()
                                 .requestMatchers("/api/auth/logout", "/api/auth/refresh").permitAll()
+                                .requestMatchers("/api/auth/validate-admin", "api/auth/validate-member").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
