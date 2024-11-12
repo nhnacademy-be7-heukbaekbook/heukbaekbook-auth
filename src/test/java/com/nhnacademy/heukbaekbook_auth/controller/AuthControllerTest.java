@@ -125,7 +125,7 @@ class AuthControllerTest {
                         .contentType("application/json")
                         .content("{\"accessToken\":\"invalidAccessToken\"}")
                         .with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -154,6 +154,6 @@ class AuthControllerTest {
                         .contentType("application/json")
                         .content("{\"accessToken\":\"invalidAccessToken\"}")
                         .with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 }

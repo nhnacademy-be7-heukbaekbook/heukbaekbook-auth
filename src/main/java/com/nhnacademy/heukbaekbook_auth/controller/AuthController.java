@@ -59,7 +59,7 @@ public class AuthController {
     public ResponseEntity<TokenResponse> validateAdmin(@RequestBody TokenRequest tokenRequest) {
         TokenResponse tokenResponse = authService.validateRole(tokenRequest.accessToken(), ROLE_ADMIN);
         if (tokenResponse == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(tokenResponse);
     }
@@ -68,7 +68,7 @@ public class AuthController {
     public ResponseEntity<TokenResponse> validateMember(@RequestBody TokenRequest tokenRequest) {
         TokenResponse tokenResponse = authService.validateRole(tokenRequest.accessToken(), ROLE_MEMBER);
         if (tokenResponse == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(tokenResponse);
     }
