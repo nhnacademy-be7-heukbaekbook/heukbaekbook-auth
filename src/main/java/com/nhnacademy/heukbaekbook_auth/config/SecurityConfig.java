@@ -61,6 +61,7 @@ public class SecurityConfig {
                         auth.requestMatchers("/api/auth/login", "/api/auth/admin/login").permitAll()
                                 .requestMatchers("/api/auth/logout", "/api/auth/refresh").permitAll()
                                 .requestMatchers("/api/auth/validate-admin", "api/auth/validate-member").permitAll()
+                                .requestMatchers("/actuator/health").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
