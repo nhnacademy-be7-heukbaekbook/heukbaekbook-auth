@@ -16,8 +16,8 @@ public class AuthService {
     private static final String MESSAGE = "유효하지 않은 Refresh Token 입니다.";
     public static final String REFRESH_TOKEN = "refreshToken";
     public static final String ACCESS_TOKEN = "accessToken";
-    private static final long ACCESS_TOKEN_EXPIRATION_TIME = 30 * 60 * 1000L;                       // 30 min
-    private static final long REFRESH_TOKEN_EXPIRATION_TIME = 3 * 24 * 60 * 60 * 1000L;             // 3 days
+    public static final long ACCESS_TOKEN_EXPIRATION_TIME = 30 * 60 * 1000L;                       // 30 min
+    public static final long REFRESH_TOKEN_EXPIRATION_TIME = 3 * 24 * 60 * 60 * 1000L;             // 3 days
 
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
@@ -63,6 +63,9 @@ public class AuthService {
         // 응답에 토큰 추가
         response.addCookie(CookieUtil.createCookie(ACCESS_TOKEN, accessToken, ACCESS_TOKEN_EXPIRATION_TIME));
         response.addCookie(CookieUtil.createCookie(REFRESH_TOKEN, refreshToken, REFRESH_TOKEN_EXPIRATION_TIME));
+
+        response.setHeader(ACCESS_TOKEN, accessToken);
+        response.setHeader(REFRESH_TOKEN, refreshToken);
     }
 
     public void logout(String refreshToken) {
