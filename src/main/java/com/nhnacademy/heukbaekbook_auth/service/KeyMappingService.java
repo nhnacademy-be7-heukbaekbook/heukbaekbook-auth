@@ -2,7 +2,6 @@ package com.nhnacademy.heukbaekbook_auth.service;
 
 import com.nhnacademy.heukbaekbook_auth.dto.UserRoleAndId;
 import com.nhnacademy.heukbaekbook_auth.exception.InvalidRoleException;
-import com.nhnacademy.heukbaekbook_auth.exception.InvalidTokenException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
