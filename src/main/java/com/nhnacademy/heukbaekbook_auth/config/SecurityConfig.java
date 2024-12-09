@@ -3,8 +3,10 @@ package com.nhnacademy.heukbaekbook_auth.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.heukbaekbook_auth.filter.AdminLoginFilter;
 import com.nhnacademy.heukbaekbook_auth.filter.MemberLoginFilter;
+import com.nhnacademy.heukbaekbook_auth.point.service.LoginEventService;
 import com.nhnacademy.heukbaekbook_auth.service.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -27,6 +29,7 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
     private final AdminUserDetailsService adminUserDetailsService;
     private final MemberUserDetailsService customUserDetailsService;
+    private final LoginEventService loginEventService;
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -69,7 +72,7 @@ public class SecurityConfig {
                 );
 
         MemberLoginFilter loginFilter = new MemberLoginFilter(
-                memberAuthenticationManager(), memberService, authService, objectMapper);
+                memberAuthenticationManager(), memberService, authService, objectMapper, loginEventService);
 
         AdminLoginFilter adminLoginFilter = new AdminLoginFilter(
                 adminAuthenticationManager(), authService, objectMapper);

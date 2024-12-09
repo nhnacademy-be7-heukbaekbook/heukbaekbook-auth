@@ -6,6 +6,7 @@ import com.nhnacademy.heukbaekbook_auth.dto.LoginRequest;
 import com.nhnacademy.heukbaekbook_auth.dto.UserInfoResponse;
 import com.nhnacademy.heukbaekbook_auth.exception.IdOrPasswordMissingException;
 import com.nhnacademy.heukbaekbook_auth.exception.InvalidLoginRequestException;
+import com.nhnacademy.heukbaekbook_auth.point.service.LoginEventService;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
 import com.nhnacademy.heukbaekbook_auth.service.MemberService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,6 +41,9 @@ class LoginFilterTest {
     @Mock
     private MemberService memberService;
 
+    @Mock
+    private LoginEventService loginEventService;
+
     @InjectMocks
     private MemberLoginFilter memberLoginFilter;
 
@@ -51,7 +55,7 @@ class LoginFilterTest {
 
     @BeforeEach
     void setUp() {
-        memberLoginFilter = new MemberLoginFilter(authenticationManager, memberService, authService, objectMapper);
+        memberLoginFilter = new MemberLoginFilter(authenticationManager, memberService, authService, objectMapper, loginEventService);
         adminLoginFilter = new AdminLoginFilter(authenticationManager, authService, objectMapper);
 
         mockMvc = MockMvcBuilders.standaloneSetup()
