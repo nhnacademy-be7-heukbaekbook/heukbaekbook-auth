@@ -6,7 +6,6 @@ import com.nhnacademy.heukbaekbook_auth.filter.MemberLoginFilter;
 import com.nhnacademy.heukbaekbook_auth.point.service.LoginEventService;
 import com.nhnacademy.heukbaekbook_auth.service.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;

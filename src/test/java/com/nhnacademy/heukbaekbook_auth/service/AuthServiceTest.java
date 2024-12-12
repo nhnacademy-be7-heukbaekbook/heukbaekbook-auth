@@ -60,7 +60,7 @@ class AuthServiceTest {
 
         verify(response, times(2)).addCookie(any());
         verify(refreshTokenService).save(CUSTOMER_ID, ROLE, newRefreshToken, REFRESH_TOKEN_EXPIRATION_TIME);
-        verify(keyMappingService).saveMapping(RANDOM_KEY, CUSTOMER_ID, ROLE, ACCESS_TOKEN_EXPIRATION_TIME);
+        verify(keyMappingService).saveMapping(RANDOM_KEY, CUSTOMER_ID, ROLE, REFRESH_TOKEN_EXPIRATION_TIME);
     }
 
     @Test

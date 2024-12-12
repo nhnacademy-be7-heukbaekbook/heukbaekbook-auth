@@ -51,7 +51,7 @@ public class AuthService {
         String randomKey = jwtUtil.generateRandomKey();
 
         // 1회용 randomKey 저장
-        keyMappingService.saveMapping(randomKey, id, role, ACCESS_TOKEN_EXPIRATION_TIME);
+        keyMappingService.saveMapping(randomKey, id, role, REFRESH_TOKEN_EXPIRATION_TIME);
 
         // 토큰 생성
         String accessToken = jwtUtil.createJwt(randomKey, ACCESS_TOKEN_EXPIRATION_TIME);
