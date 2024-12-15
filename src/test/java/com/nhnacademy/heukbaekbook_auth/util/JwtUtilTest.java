@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,107 +16,141 @@ class JwtUtilTest {
 
     private static final String TEST_SECRET_KEY = "testSecretKey12345678901234567890";
     private static final String TEST_REFRESH_SECRET_KEY = "testRefreshSecretKey12345678901234567890";
-    private static final Long CUSTOMER_ID = 1L;
-    private static final String LOGIN_ID = "testLoginId";
-    private static final String ROLE = "ROLE_MEMBER";
     private static final Long EXPIRED_MS = 60 * 1000L;
+    private static final String RANDOM_KEY = "testRandomKey";
 
     private JwtUtil jwtUtil;
 
     @BeforeEach
     void setUp() {
-        this.jwtUtil = new JwtUtil(TEST_SECRET_KEY, TEST_REFRESH_SECRET_KEY);
+        jwtUtil = new JwtUtil(TEST_SECRET_KEY, TEST_REFRESH_SECRET_KEY);
     }
 
     @Test
-    void createJwt_shouldGenerateValidJwt() {
-        String token = jwtUtil.createJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+    void testCreateJwt() {
+        String token = jwtUtil.createJwt(RANDOM_KEY, EXPIRED_MS);
 
         assertNotNull(token);
-        Claims payload = Jwts.parser()
+        Claims claims = Jwts.parser()
                 .verifyWith(new SecretKeySpec(TEST_SECRET_KEY.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
                 .build()
-                .parseSignedClaims(token).getPayload();
+                .parseSignedClaims(token)
+                .getPayload();
 
-        assertEquals(CUSTOMER_ID, Long.parseLong(payload.get("sub", String.class)));
-        assertEquals(LOGIN_ID, payload.get("id", String.class));
-        assertEquals(ROLE, payload.get("role", String.class));
+        assertEquals(RANDOM_KEY, claims.get("id", String.class));
+        assertTrue(claims.getExpiration().after(new Date()));
     }
 
     @Test
-    void createRefreshJwt_shouldGenerateValidRefreshJwt() {
-        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+    void testCreateRefreshJwt() {
+        String refreshToken = jwtUtil.createRefreshJwt(RANDOM_KEY, EXPIRED_MS);
 
         assertNotNull(refreshToken);
-        Claims payload = Jwts.parser()
+        Claims claims = Jwts.parser()
                 .verifyWith(new SecretKeySpec(TEST_REFRESH_SECRET_KEY.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm()))
                 .build()
-                .parseSignedClaims(refreshToken).getPayload();
+                .parseSignedClaims(refreshToken)
+                .getPayload();
 
-        assertEquals(CUSTOMER_ID, Long.parseLong(payload.get("sub", String.class)));
-        assertEquals(LOGIN_ID, payload.get("id", String.class));
-        assertEquals(ROLE, payload.get("role", String.class));
+        assertEquals(RANDOM_KEY, claims.get("id", String.class));
+        assertTrue(claims.getExpiration().after(new Date()));
     }
 
     @Test
-    void validateRefreshToken_withValidToken_shouldReturnTrue() {
-        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+    void testValidateToken_withValidToken() {
+        String token = jwtUtil.createJwt(RANDOM_KEY, EXPIRED_MS);
+
+        assertTrue(jwtUtil.validateToken(token));
+    }
+
+    @Test
+    void testValidateToken_withInvalidToken() {
+        String invalidToken = "invalid.token";
+
+        assertFalse(jwtUtil.validateToken(invalidToken));
+    }
+
+    @Test
+    void testValidateToken_withExpiredToken() {
+        String expiredToken = jwtUtil.createJwt(RANDOM_KEY, -EXPIRED_MS);
+
+        assertFalse(jwtUtil.validateToken(expiredToken));
+    }
+
+    @Test
+    void testValidateRefreshToken_withValidToken() {
+        String refreshToken = jwtUtil.createRefreshJwt(RANDOM_KEY, EXPIRED_MS);
 
         assertTrue(jwtUtil.validateRefreshToken(refreshToken));
     }
 
     @Test
-    void validateRefreshToken_withInvalidToken() {
-        String invalidToken = "invalid.token";
+    void testValidateRefreshToken_withInvalidToken() {
+        String invalidToken = "invalid.refresh.token";
 
         assertFalse(jwtUtil.validateRefreshToken(invalidToken));
     }
 
     @Test
-    void isExpiredRefreshToken_withValidToken() {
-        String validToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, 5 * 60 * 1000L);  // 5 minutes validity
+    void testValidateRefreshToken_withExpiredToken() {
+        String expiredRefreshToken = jwtUtil.createRefreshJwt(RANDOM_KEY, -EXPIRED_MS); // Expired token
 
-        assertFalse(jwtUtil.isExpiredRefreshToken(validToken));
+        assertFalse(jwtUtil.validateRefreshToken(expiredRefreshToken));
     }
 
     @Test
-    void isExpiredRefreshToken_withExpiredToken() {
-        String expiredToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, -5 * 60 * 1000L);  // Expired 5 minutes ago
+    void testGetRandomKeyFromToken_withValidToken() {
+        String token = jwtUtil.createJwt(RANDOM_KEY, EXPIRED_MS);
 
-        assertTrue(jwtUtil.isExpiredRefreshToken(expiredToken));
+        String extractedRandomKey = jwtUtil.getRandomKeyFromToken(token);
+
+        assertEquals(RANDOM_KEY, extractedRandomKey);
     }
 
     @Test
-    void isExpiredRefreshToken_withInvalidToken() {
+    void testGetRandomKeyFromToken_withInvalidToken() {
         String invalidToken = "invalid.token.here";
 
-        assertTrue(jwtUtil.isExpiredRefreshToken(invalidToken));
+        assertThrows(JwtException.class, () -> jwtUtil.getRandomKeyFromToken(invalidToken));
     }
 
     @Test
-    void getIdFromRefreshToken() {
-        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+    void testGetRandomKeyFromToken_withNullToken() {
+        String nullToken = null;
 
-        Long extractedCustomerId = jwtUtil.getIdFromRefreshToken(refreshToken);
-
-        assertEquals(CUSTOMER_ID, extractedCustomerId);
+        assertThrows(JwtException.class, () -> jwtUtil.getRandomKeyFromToken(nullToken));
     }
 
     @Test
-    void getLoginIdFromRefreshToken() {
-        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+    void testGetRandomKeyFromRefreshToken_withValidToken() {
+        String refreshToken = jwtUtil.createRefreshJwt(RANDOM_KEY, EXPIRED_MS);
 
-        String extractedLoginId = jwtUtil.getLoginIdFromRefreshToken(refreshToken);
+        String extractedRandomKey = jwtUtil.getRandomKeyFromRefreshToken(refreshToken);
 
-        assertEquals(LOGIN_ID, extractedLoginId);
+        assertEquals(RANDOM_KEY, extractedRandomKey);
     }
 
     @Test
-    void getRoleFromRefreshTokene() {
-        String refreshToken = jwtUtil.createRefreshJwt(CUSTOMER_ID, LOGIN_ID, ROLE, EXPIRED_MS);
+    void testGetRandomKeyFromRefreshToken_withInvalidToken() {
+        String invalidRefreshToken = "invalid.refresh.token.here";
 
-        String extractedRole = jwtUtil.getRoleFromRefreshToken(refreshToken);
+        assertThrows(JwtException.class, () -> jwtUtil.getRandomKeyFromRefreshToken(invalidRefreshToken));
+    }
 
-        assertEquals(ROLE, extractedRole);
+    @Test
+    void testGetRandomKeyFromRefreshToken_withNullToken() {
+        String nullToken = null;
+
+        assertThrows(JwtException.class, () -> jwtUtil.getRandomKeyFromRefreshToken(nullToken));
+    }
+
+    @Test
+    void testGenerateRandomKey() {
+        String randomKey1 = jwtUtil.generateRandomKey();
+        String randomKey2 = jwtUtil.generateRandomKey();
+
+        assertNotNull(randomKey1);
+        assertNotNull(randomKey2);
+        assertNotEquals(randomKey1, randomKey2);
     }
 }

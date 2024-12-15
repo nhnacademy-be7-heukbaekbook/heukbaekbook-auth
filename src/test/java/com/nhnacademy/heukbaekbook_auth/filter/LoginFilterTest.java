@@ -6,8 +6,10 @@ import com.nhnacademy.heukbaekbook_auth.dto.LoginRequest;
 import com.nhnacademy.heukbaekbook_auth.dto.UserInfoResponse;
 import com.nhnacademy.heukbaekbook_auth.exception.IdOrPasswordMissingException;
 import com.nhnacademy.heukbaekbook_auth.exception.InvalidLoginRequestException;
+import com.nhnacademy.heukbaekbook_auth.point.service.LoginEventService;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
 import com.nhnacademy.heukbaekbook_auth.service.MemberService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +41,9 @@ class LoginFilterTest {
     @Mock
     private MemberService memberService;
 
+    @Mock
+    private LoginEventService loginEventService;
+
     @InjectMocks
     private MemberLoginFilter memberLoginFilter;
 
@@ -50,7 +55,7 @@ class LoginFilterTest {
 
     @BeforeEach
     void setUp() {
-        memberLoginFilter = new MemberLoginFilter(authenticationManager, memberService, authService, objectMapper);
+        memberLoginFilter = new MemberLoginFilter(authenticationManager, memberService, authService, objectMapper, loginEventService);
         adminLoginFilter = new AdminLoginFilter(authenticationManager, authService, objectMapper);
 
         mockMvc = MockMvcBuilders.standaloneSetup()
@@ -69,12 +74,19 @@ class LoginFilterTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authResult);
 
+        doAnswer(invocation -> {
+            HttpServletResponse response = invocation.getArgument(0);
+            response.setHeader(AuthService.ACCESS_TOKEN, "testAccessToken");
+            response.setHeader(AuthService.REFRESH_TOKEN, "testRefreshToken");
+            return null;
+        }).when(authService).issueTokens(any(), eq(1L), eq("ROLE_USER"));
+
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk());
 
-        verify(authService).issueTokens(any(), eq(1L), eq("user"), eq("ROLE_USER"));
+        verify(authService).issueTokens(any(HttpServletResponse.class), eq(1L), eq("ROLE_USER"));
         verify(memberService).updateLastLogin("user");
     }
 
@@ -89,12 +101,19 @@ class LoginFilterTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authResult);
 
+        doAnswer(invocation -> {
+            HttpServletResponse response = invocation.getArgument(0);
+            response.setHeader(AuthService.ACCESS_TOKEN, "testAdminAccessToken");
+            response.setHeader(AuthService.REFRESH_TOKEN, "testAdminRefreshToken");
+            return null;
+        }).when(authService).issueTokens(any(), eq(1L), eq("ROLE_ADMIN"));
+
         mockMvc.perform(post("/api/auth/admin/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk());
 
-        verify(authService).issueTokens(any(), eq(1L), eq("admin"), eq("ROLE_ADMIN"));
+        verify(authService).issueTokens(any(HttpServletResponse.class), eq(1L), eq("ROLE_ADMIN"));
     }
 
     @Test
@@ -103,7 +122,7 @@ class LoginFilterTest {
 
         assertThrows(IdOrPasswordMissingException.class, () -> performLoginRequest(loginRequest));
 
-        verify(authService, never()).issueTokens(any(), anyLong(), anyString(), anyString());
+        verify(authService, never()).issueTokens(any(), anyLong(), anyString());
     }
 
     @Test

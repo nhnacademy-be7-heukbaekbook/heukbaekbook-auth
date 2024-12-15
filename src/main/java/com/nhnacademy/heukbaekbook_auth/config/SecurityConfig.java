@@ -3,6 +3,7 @@ package com.nhnacademy.heukbaekbook_auth.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhnacademy.heukbaekbook_auth.filter.AdminLoginFilter;
 import com.nhnacademy.heukbaekbook_auth.filter.MemberLoginFilter;
+import com.nhnacademy.heukbaekbook_auth.point.service.LoginEventService;
 import com.nhnacademy.heukbaekbook_auth.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -27,6 +28,7 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
     private final AdminUserDetailsService adminUserDetailsService;
     private final MemberUserDetailsService customUserDetailsService;
+    private final LoginEventService loginEventService;
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -60,6 +62,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/login", "/api/auth/admin/login").permitAll()
                                 .requestMatchers("/api/auth/logout", "/api/auth/refresh").permitAll()
+                                .requestMatchers("/api/auth/validate-admin", "api/auth/validate-member").permitAll()
+                                .requestMatchers("/actuator/health").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
@@ -67,7 +71,7 @@ public class SecurityConfig {
                 );
 
         MemberLoginFilter loginFilter = new MemberLoginFilter(
-                memberAuthenticationManager(), memberService, authService, objectMapper);
+                memberAuthenticationManager(), memberService, authService, objectMapper, loginEventService);
 
         AdminLoginFilter adminLoginFilter = new AdminLoginFilter(
                 adminAuthenticationManager(), authService, objectMapper);

@@ -1,5 +1,7 @@
 package com.nhnacademy.heukbaekbook_auth.util;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,12 +11,11 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
     private static final String ID = "id";
-    private static final String ROLE = "role";
-    private static final String SUB = "sub";
 
     private final SecretKey secretKey;
     private final SecretKey refreshSecretKey;
@@ -24,82 +25,69 @@ public class JwtUtil {
         this.refreshSecretKey = new SecretKeySpec(refresh.getBytes(StandardCharsets.UTF_8), Jwts.SIG.HS256.key().build().getAlgorithm());
     }
 
-    public String createJwt(Long customerId, String loginId, String role, Long expiredMs) {
+    public String createJwt(String randomKey, Long expiredMs) {
+        return buildToken(randomKey, expiredMs, secretKey);
+    }
+
+    public String createRefreshJwt(String randomKey, Long expiredMs) {
+        return buildToken(randomKey, expiredMs, refreshSecretKey);
+    }
+
+    private String buildToken(String randomKey, Long expiredMs, SecretKey key) {
         return Jwts.builder()
-                .claim(SUB, String.valueOf(customerId))
-                .claim(ID, loginId)
-                .claim(ROLE, role)
+                .claim(ID, randomKey)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
-                .signWith(secretKey)
+                .signWith(key)
                 .compact();
     }
 
-    public String createRefreshJwt(Long customerId, String loginId, String role, Long expiredMs) {
-        return Jwts.builder()
-                .claim(SUB, String.valueOf(customerId))
-                .claim(ID, loginId)
-                .claim(ROLE, role)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiredMs))
-                .signWith(refreshSecretKey)
-                .compact();
+    public boolean validateToken(String token) {
+        return validateTokenWithKey(token, secretKey);
     }
 
     public boolean validateRefreshToken(String token) {
-        try {
-            Jwts.parser()
-                    .verifyWith(refreshSecretKey)
-                    .build()
-                    .parseSignedClaims(token);
+        return validateTokenWithKey(token, refreshSecretKey);
+    }
 
-            return !isExpiredRefreshToken(token);
+    private boolean validateTokenWithKey(String token, SecretKey key) {
+        try {
+            Claims claims = parseToken(token, key);
+            return !isExpired(claims);
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
-    public boolean isExpiredRefreshToken(String token) {
+    private Claims parseToken(String token, SecretKey key) {
         try {
-            Date expirationDate = Jwts.parser()
-                    .verifyWith(refreshSecretKey)
+            return Jwts.parser()
+                    .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
-                    .getPayload()
-                    .getExpiration();
-
-            return expirationDate.before(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            return true;
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new JwtException("만료된 토큰입니다.", e);
+        } catch (JwtException e) {
+            throw new JwtException("잘못된 토큰 형식입니다.", e);
+        } catch (IllegalArgumentException e) {
+            throw new JwtException("토큰이 null이거나 잘못된 값입니다.", e);
         }
     }
 
-    public Long getIdFromRefreshToken(String token) {
-        String customerIdStr = Jwts.parser()
-                .verifyWith(refreshSecretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .get(SUB, String.class);
-
-        return Long.valueOf(customerIdStr);
+    private boolean isExpired(Claims claims) {
+        return claims.getExpiration().before(new Date());
     }
 
-    public String getLoginIdFromRefreshToken(String token) {
-        return Jwts.parser()
-                .verifyWith(refreshSecretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .get(ID, String.class);
+    public String getRandomKeyFromToken(String token) {
+        return parseToken(token, secretKey).get(ID, String.class);
     }
 
-    public String getRoleFromRefreshToken(String token) {
-        return Jwts.parser()
-                .verifyWith(refreshSecretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .get(ROLE, String.class);
+    public String getRandomKeyFromRefreshToken(String token) {
+        return parseToken(token, refreshSecretKey).get(ID, String.class);
+    }
+
+    public String generateRandomKey() {
+        return UUID.randomUUID().toString();
     }
 }

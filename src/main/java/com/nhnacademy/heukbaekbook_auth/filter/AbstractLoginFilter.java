@@ -15,12 +15,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.Map;
+
+import static com.nhnacademy.heukbaekbook_auth.service.AuthService.*;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.apache.commons.codec.CharEncoding.UTF_8;
 
 @RequiredArgsConstructor
 public abstract class AbstractLoginFilter extends UsernamePasswordAuthenticationFilter {
@@ -52,14 +54,15 @@ public abstract class AbstractLoginFilter extends UsernamePasswordAuthentication
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
 
+        Long id = customUserDetails.getId();
         String loginId = customUserDetails.getUsername();
-        Long customerId = customUserDetails.getId();
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
-        String role = iterator.hasNext() ? iterator.next().getAuthority() : null;
+        String role = customUserDetails.getAuthorities().iterator().next().getAuthority();
 
-        authService.issueTokens(response, customerId, loginId, role);
+        authService.issueTokens(response, id, role);
         afterSuccessfulAuthentication(loginId);
+        String access = response.getHeader(ACCESS_TOKEN);
+        String refresh = response.getHeader(REFRESH_TOKEN);
+        setResponse(response, id, role, access, refresh);
     }
 
     @Override
@@ -68,5 +71,23 @@ public abstract class AbstractLoginFilter extends UsernamePasswordAuthentication
     }
 
     protected void afterSuccessfulAuthentication(String loginId) {
+    }
+
+    private void setResponse(HttpServletResponse response, Long userId, String role, String accessToken, String refreshToken) throws IOException {
+        if (accessToken == null || refreshToken == null) {
+            throw new IllegalArgumentException("AccessToken 또는 RefreshToken이 null입니다.");
+        }
+
+        response.setContentType(APPLICATION_JSON);
+        response.setCharacterEncoding(UTF_8);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.writeValue(response.getWriter(), Map.of(
+                "userId", userId,
+                "userRole", role,
+                ACCESS_TOKEN, accessToken,
+                REFRESH_TOKEN, refreshToken,
+                "accessExpire", ACCESS_TOKEN_EXPIRATION_TIME,
+                "refreshExpire", REFRESH_TOKEN_EXPIRATION_TIME
+        ));
     }
 }

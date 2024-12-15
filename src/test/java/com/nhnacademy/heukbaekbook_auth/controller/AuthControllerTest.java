@@ -1,5 +1,7 @@
 package com.nhnacademy.heukbaekbook_auth.controller;
 
+import com.nhnacademy.heukbaekbook_auth.dto.TokenRequest;
+import com.nhnacademy.heukbaekbook_auth.dto.TokenResponse;
 import com.nhnacademy.heukbaekbook_auth.exception.InvalidTokenException;
 import com.nhnacademy.heukbaekbook_auth.service.AuthService;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,7 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser
-    void refreshToken_withValidToken() throws Exception {
+    void testRefreshToken_withValidToken() throws Exception {
         Cookie refreshTokenCookie = new Cookie(REFRESH_TOKEN, "validRefreshToken");
 
         mockMvc.perform(post("/api/auth/refresh")
@@ -48,7 +50,7 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser
-    void refreshToken_withInvalidToken() throws Exception {
+    void testRefreshToken_withInvalidToken() throws Exception {
         Cookie refreshTokenCookie = new Cookie(REFRESH_TOKEN, "invalidRefreshToken");
         doThrow(new InvalidTokenException("유효하지 않은 Refresh Token 입니다."))
                 .when(authService).refreshAccessToken(any(), eq("invalidRefreshToken"));
@@ -63,7 +65,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void refreshToken_withMissingToken() throws Exception {
+    void testRefreshToken_withMissingToken() throws Exception {
         doThrow(new InvalidTokenException("유효하지 않은 Refresh Token 입니다."))
                 .when(authService).refreshAccessToken(any(), isNull());
 
@@ -76,7 +78,7 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser
-    void logout_clearCookieAndReturnNoContent() throws Exception {
+    void testLogout_clearCookieAndReturnNoContent() throws Exception {
         Cookie refreshTokenCookie = new Cookie(REFRESH_TOKEN, "validRefreshToken");
 
         mockMvc.perform(post("/api/auth/logout")
@@ -89,11 +91,69 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser
-    void logout_withMissingToken() throws Exception {
+    void testLogout_withMissingToken() throws Exception {
         mockMvc.perform(post("/api/auth/logout")
                         .with(csrf()))
                 .andExpect(status().isNoContent());
 
         Mockito.verify(authService).logout(null);
+    }
+
+    @Test
+    @WithMockUser
+    void testValidateAdmin_withValidToken() throws Exception {
+        TokenRequest tokenRequest = new TokenRequest("validAccessToken");
+        TokenResponse tokenResponse = new TokenResponse(1L, "ROLE_ADMIN");
+        Mockito.when(authService.validateRole(tokenRequest.accessToken(), "ROLE_ADMIN")).thenReturn(tokenResponse);
+
+        mockMvc.perform(post("/api/auth/validate-admin")
+                        .contentType("application/json")
+                        .content("{\"accessToken\":\"validAccessToken\"}")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.role").value("ROLE_ADMIN"));
+    }
+
+    @Test
+    @WithMockUser
+    void testValidateAdmin_withInvalidToken() throws Exception {
+        TokenRequest tokenRequest = new TokenRequest("invalidAccessToken");
+        Mockito.when(authService.validateRole(tokenRequest.accessToken(), "ROLE_ADMIN")).thenReturn(null);
+
+        mockMvc.perform(post("/api/auth/validate-admin")
+                        .contentType("application/json")
+                        .content("{\"accessToken\":\"invalidAccessToken\"}")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser
+    void testValidateMember_withValidToken() throws Exception {
+        TokenRequest tokenRequest = new TokenRequest("validAccessToken");
+        TokenResponse tokenResponse = new TokenResponse(2L, "ROLE_MEMBER");
+        Mockito.when(authService.validateRole(tokenRequest.accessToken(), "ROLE_MEMBER")).thenReturn(tokenResponse);
+
+        mockMvc.perform(post("/api/auth/validate-member")
+                        .contentType("application/json")
+                        .content("{\"accessToken\":\"validAccessToken\"}")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(2L))
+                .andExpect(jsonPath("$.role").value("ROLE_MEMBER"));
+    }
+
+    @Test
+    @WithMockUser
+    void testValidateMember_withInvalidToken() throws Exception {
+        TokenRequest tokenRequest = new TokenRequest("invalidAccessToken");
+        Mockito.when(authService.validateRole(tokenRequest.accessToken(), "ROLE_MEMBER")).thenReturn(null);
+
+        mockMvc.perform(post("/api/auth/validate-member")
+                        .contentType("application/json")
+                        .content("{\"accessToken\":\"invalidAccessToken\"}")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
     }
 }
